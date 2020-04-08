@@ -20,6 +20,7 @@ func (amw *authenticationMiddleware) Populate() {
     amw.tokenUsers["deadbeef"] = "user0"
 }
 
+/*Test: curl -v -H 'X-Session-Token:00000000' http://127.0.0.1/test/quer?filter=dd*/
 // Middleware function, which will be called for each request
 func (amw *authenticationMiddleware) Middleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
