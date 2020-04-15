@@ -16,7 +16,7 @@ var count int
 var successCt int
 var sleep_cnt int
 const (
-    TEST_REQUEST_NUM = 5000
+    TEST_REQUEST_NUM = 1
     HTTP_REQ_TIMEOUT_SECOND = 3
 )
 
@@ -53,6 +53,7 @@ func GetTokenReq(url string, parama string) int {
     }
     req, err := http.NewRequest("GET", url, strings.NewReader(parama))
     req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+    req.Header.Add("X-Session-Token", "00000000")
     resp, err := client.Do(req)
     if err != nil {
         fmt.Printf("err 1: %v\n", err)

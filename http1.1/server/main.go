@@ -1,16 +1,12 @@
 package main
 
 import (
-    "crypto/tls"
     "flag"
     "fmt"
     "github.com/gorilla/mux"
-    "golang.org/x/net/http2"
-    "golang.org/x/net/http2/h2c"
     "log"
     "net/http"
     "time"
-    "strings"
 )
 
 var count int
@@ -24,55 +20,18 @@ func loggingMiddleware(next http.Handler) http.Handler {
     })
 }
 
-func testHandle(w http.ResponseWriter, r *http.Request) {
-    count++
-    fmt.Printf("Get test request, count: %d\n", count)
-    time.Sleep(time.Second*1)
-    //time.Sleep(time.Millisecond*500)
-    //fmt.Println("test return.")
-    w.WriteHeader(http.StatusOK)
-    return
-}
-
-func hostHandle(w http.ResponseWriter, r *http.Request) {
-    fmt.Printf("other host: %v\n", r.Host)
-    w.WriteHeader(http.StatusOK)
-    return
-}
-
-func pathVarHandle(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    fmt.Printf("Key: %s\n", vars["key"])
-
-    w.WriteHeader(http.StatusOK)
-    fmt.Fprintf(w, "Key: %v\n", vars["key"])
-}
-
-func hostSubHandle(w http.ResponseWriter, r *http.Request) {
-    fmt.Printf("sub host: %s\n", r.Host)
-
-    w.WriteHeader(http.StatusOK)
-    fmt.Fprintf(w, "host: %v\n", r.Host)
-}
-
-func otherTestHandle(w http.ResponseWriter, r *http.Request) {
-    fmt.Printf("other path: %s\n", r.URL.Path)
-    w.WriteHeader(http.StatusOK)
-}
-
-func testQuerHandle(w http.ResponseWriter, r *http.Request) {
-    fmt.Printf("queries: %v\n", r.URL.RawQuery)
-    w.WriteHeader(http.StatusOK)
-}
-
 func main() {
     //init
     count = 0
-    var dir string
+    var dir, port, certFile, keyFile string
     /*./exe -dir value*/
-    flag.StringVar(&dir, "dir", ".", "the directory to serve files from. Defaults to the current dir")
+    flag.StringVar(&dir, "d", ".", "the directory to serve files from. Defaults to the current dir")
+    flag.StringVar(&port, "p", "80", "set Http-Server port.")
+    flag.StringVar(&certFile, "crt", "", "set cert file.")
+    flag.StringVar(&keyFile, "key", "", "set key file.")
     flag.Parse()
     fmt.Println("dir: ", dir)
+    fmt.Println("port: ", port)
 
     r := mux.NewRouter()
     r.Use(loggingMiddleware)
@@ -98,36 +57,21 @@ func main() {
     r.HandleFunc("/test/quer", testQuerHandle).Methods("GET").Queries("filter", "{filter}")
 
     //The Walk function on mux.Router can be used to visit all of the routes that are registered on a router.
-    r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-        pathTemplate, err := route.GetPathTemplate()
-        if err == nil {
-            fmt.Println("ROUTE:", pathTemplate)
-        }
-        pathRegexp, err := route.GetPathRegexp()
-        if err == nil {
-            fmt.Println("Path regexp:", pathRegexp)
-        }
-        queriesTemplates, err := route.GetQueriesTemplates()
-        if err == nil {
-            fmt.Println("Queries templates:", strings.Join(queriesTemplates, ","))
-        }
-        queriesRegexps, err := route.GetQueriesRegexp()
-        if err == nil {
-            fmt.Println("Queries regexps:", strings.Join(queriesRegexps, ","))
-        }
-        methods, err := route.GetMethods()
-        if err == nil {
-            fmt.Println("Methods:", strings.Join(methods, ","))
-        }
-        fmt.Println()
-        return nil
-    })
+    r.Walk(walkFunc)
 
-    h2 := &http2.Server{}
-    handler := h2c.NewHandler(r, h2)
-    srv := &http.Server{Addr: ":80",
-        TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
-        Handler:      handler}
-    srv.ListenAndServe()
-    fmt.Println("http server stopped listening")
+    srv := &http.Server{
+        Handler:      r,
+        Addr:         fmt.Sprintf(":%s", port),
+        // Good practice: enforce timeouts for servers you create!
+        WriteTimeout: 15 * time.Second,
+        ReadTimeout:  15 * time.Second,
+    }
+
+    if certFile==""||keyFile=="" {
+        log.Fatal(srv.ListenAndServe())
+    } else {
+        fmt.Println("certFile: ", certFile)
+        fmt.Println("keyFile : ", keyFile)
+        log.Fatal(srv.ListenAndServeTLS(certFile, keyFile))
+    }
 }
