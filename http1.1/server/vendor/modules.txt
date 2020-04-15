@@ -1,13 +1,2 @@
 # github.com/gorilla/mux v1.7.4
 github.com/gorilla/mux
-# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-golang.org/x/net/http2
-golang.org/x/net/http2/h2c
-golang.org/x/net/http/httpguts
-golang.org/x/net/http2/hpack
-golang.org/x/net/idna
-# golang.org/x/text v0.3.0
-golang.org/x/text/secure/bidirule
-golang.org/x/text/unicode/bidi
-golang.org/x/text/unicode/norm
-golang.org/x/text/transform
